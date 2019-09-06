@@ -131,9 +131,9 @@ genRefRow path hf = genRows $ generateRefs $ getAsts $ hie_asts hf
             sunit = moduleUnitId $ hie_module hf
             occ = nameOccName name
             file = FS.unpackFS $ srcSpanFile sp
-            sl = srcSpanStartLine sp
-            sc = srcSpanStartCol sp
-            el = srcSpanEndLine sp
-            ec = srcSpanEndCol sp
+            sl = StartLine $ srcSpanStartLine sp
+            sc = StartColumn $ srcSpanStartCol sp
+            el = EndLine $ srcSpanEndLine sp
+            ec = EndColumn $ srcSpanEndCol sp
     go _ = Nothing
 

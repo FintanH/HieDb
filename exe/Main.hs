@@ -214,11 +214,11 @@ runCommand opts c = withHieDb (database opts) $ \conn -> do
       let ns = if isCons nm then dataName else varName
       let occ = mkOccName ns nm
       (spn, mdl) <- reportAmbiguousErr =<< findDef conn occ mn muid
-      reportRefSpans [(mdl, (srcSpanStartLine spn , srcSpanStartCol spn), (srcSpanEndLine spn , srcSpanEndCol spn))]
+      reportRefSpans [(mdl, realSrcSpanToSourceSpan spn)]
     go conn (TypeDef nm mn muid) = do
       let occ = mkOccName tcClsName nm
       (spn, mdl) <- reportAmbiguousErr =<< findDef conn occ mn muid
-      reportRefSpans [(mdl, (srcSpanStartLine spn , srcSpanStartCol spn), (srcSpanEndLine spn , srcSpanEndCol spn))]
+      reportRefSpans [(mdl, realSrcSpanToSourceSpan spn)]
     go conn (Cat target) = hieFileCommand conn target (BS.putStrLn . hie_hs_src)
     go conn Ls = do
       mods <- getAllIndexedMods conn
@@ -274,9 +274,7 @@ runCommand opts c = withHieDb (database opts) $ \conn -> do
           Nothing -> do
             let refmap = generateReferencesMap (getAsts $ hie_asts hf)
                 refs = map (toRef . fst) $ fromMaybe [] $ M.lookup (Right name) refmap
-                toRef spn = (hie_module hf,
-                              (srcSpanStartLine spn , srcSpanStartCol spn),
-                              (srcSpanEndLine spn , srcSpanEndCol spn))
+                toRef spn = (hie_module hf, realSrcSpanToSourceSpan spn)
             reportRefSpans refs
     go conn (TypesAtPoint target sp mep) = hieFileCommand conn target $ \hf -> do
       let types' = concat $ pointCommand hf sp mep $ nodeType . nodeInfo
@@ -291,17 +289,14 @@ runCommand opts c = withHieDb (database opts) $ \conn -> do
           RealSrcSpan dsp -> do
             putStrLn $ unwords ["Name", occNameString (nameOccName name),"at",show sp,"is defined at:"]
             reportRefSpans [(fromMaybe (hie_module hf) (nameModule_maybe name)
-                            ,(srcSpanStartLine dsp,srcSpanStartCol dsp)
-                            ,(srcSpanEndLine dsp, srcSpanEndCol dsp))]
+                            , realSrcSpanToSourceSpan dsp)]
           UnhelpfulSpan msg -> do
             case nameModule_maybe name of
               Just mod -> do
                 (dsp,mdl) <- reportAmbiguousErr
                     =<< findDef conn (nameOccName name) (moduleName mod) (Just $ moduleUnitId mod)
                 putStrLn $ unwords ["Name", occNameString (nameOccName name),"at",show sp,"is defined at:"]
-                reportRefSpans [(mdl
-                                ,(srcSpanStartLine dsp,srcSpanStartCol dsp)
-                                ,(srcSpanEndLine dsp, srcSpanEndCol dsp))]
+                reportRefSpans [(mdl, realSrcSpanToSourceSpan dsp)]
               Nothing -> do
                 reportAmbiguousErr $ Left $ NameUnhelpfulSpan name (FS.unpackFS msg)
     go conn (InfoAtPoint target sp mep) = hieFileCommand conn target $ \hf -> do
@@ -347,8 +342,8 @@ reportAmbiguousErr (Left (NameUnhelpfulSpan nm msg)) = do
     ["Got no helpful spans for:", occNameString (nameOccName nm), "\nMsg:", msg]
   exitFailure
 
-reportRefSpans :: [(Module,(Int,Int),(Int,Int))] -> IO ()
-reportRefSpans xs = forM_ xs $ \(mn,(sl,sc),(el,ec)) -> do
+reportRefSpans :: [(Module,SourceSpan)] -> IO ()
+reportRefSpans xs = forM_ xs $ \(mn,(SourceSpan sl sc el ec)) -> do
   putStr (moduleNameString $ moduleName mn)
   putStr ":"
   putStr (show sl)
@@ -361,7 +356,7 @@ reportRefSpans xs = forM_ xs $ \(mn,(sl,sc),(el,ec)) -> do
 
 reportRefs :: [RefRow] -> IO ()
 reportRefs xs = reportRefSpans
-  [ (mdl,(refSLine x, refSCol x),(refELine x, refECol x))
+  [ (mdl, SourceSpan (refSLine x) (refSCol x) (refELine x) (refECol x))
   | x <- xs
   , let mdl = mkModule (refSrcUnit x) (refSrcMod x)
   ]

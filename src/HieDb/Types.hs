@@ -9,6 +9,7 @@ module HieDb.Types where
 
 import Prelude hiding (mod)
 
+import GHC
 import Name
 import Module
 import NameCache
@@ -84,6 +85,50 @@ instance ToRow HieModuleRow where
 instance FromRow HieModuleRow where
   fromRow = HieModuleRow <$> field <*> field <*> field <*> field
 
+newtype StartLine = StartLine Int
+deriving instance FromField StartLine
+deriving instance ToField StartLine
+
+instance Show StartLine where
+  show (StartLine l) = show l
+
+newtype StartColumn = StartColumn Int
+deriving instance FromField StartColumn
+deriving instance ToField StartColumn
+
+instance Show StartColumn where
+  show (StartColumn c) = show c
+
+newtype EndLine = EndLine Int
+deriving instance FromField EndLine
+deriving instance ToField EndLine
+
+instance Show EndLine where
+  show (EndLine l) = show l
+
+newtype EndColumn = EndColumn Int
+deriving instance FromField EndColumn
+deriving instance ToField EndColumn
+
+instance Show EndColumn where
+  show (EndColumn c) = show c
+
+data SourceSpan
+  = SourceSpan
+  { startLine :: StartLine
+  , startColumn :: StartColumn
+  , endLine :: EndLine
+  , endColumn :: EndColumn
+  }
+
+realSrcSpanToSourceSpan :: RealSrcSpan -> SourceSpan
+realSrcSpanToSourceSpan realSrcSpan = SourceSpan
+  { startLine = StartLine $ srcSpanStartLine realSrcSpan
+  , startColumn = StartColumn $ srcSpanStartCol realSrcSpan
+  , endLine = EndLine $ srcSpanEndLine realSrcSpan
+  , endColumn = EndColumn $ srcSpanEndCol realSrcSpan
+  }
+
 data RefRow
   = RefRow
   { refSrc :: FilePath
@@ -93,10 +138,10 @@ data RefRow
   , refNameMod :: ModuleName
   , refNameUnit :: UnitId
   , refFile :: FilePath
-  , refSLine :: Int
-  , refSCol :: Int
-  , refELine :: Int
-  , refECol :: Int
+  , refSLine :: StartLine
+  , refSCol :: StartColumn
+  , refELine :: EndLine
+  , refECol :: EndColumn
   }
 
 instance ToRow RefRow where
