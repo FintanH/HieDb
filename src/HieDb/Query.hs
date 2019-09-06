@@ -101,14 +101,6 @@ withTarget conn (Right (mn, muid)) f = do
             addRefsFrom conn file
             Right <$> withHieFile file (return . f)
 
--- search :: HieDb -> OccName -> Maybe ModuleName -> Maybe UnitId -> IO [RefRow]
--- searchSpan :: HieDb -> _what
--- searchSpan (getConn -> conn) = undefined
-{-
-search (getConn -> conn) occ (Just mn) Nothing =
-  query conn "SELECT * FROM refs WHERE occ = ? AND mod = ?" (occ, mn)
-search (getConn -> conn) occ (Just mn) (Just uid) =
-  query conn "SELECT * FROM refs WHERE occ = ? AND mod = ? AND unit = ?" (occ, mn, uid)
-search (getConn -> conn) occ _ _=
-  query conn "SELECT * FROM refs WHERE occ = ?" (Only occ)
--}
+searchSourceSpan :: HieDb -> ModuleName -> SourceSpan -> IO [RefRow]
+searchSourceSpan (getConn -> conn) mn (SourceSpan (StartLine sl) (StartColumn sc) (EndLine el) (EndColumn ec)) =
+  query conn "SELECT * FROM refs WHERE mod = ? AND sl >= ? AND sc >= ? AND el <= ? AND ec <= ?" (mn, sl, sc, el, ec)
