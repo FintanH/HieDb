@@ -103,4 +103,4 @@ withTarget conn (Right (mn, muid)) f = do
 
 searchSourceSpan :: HieDb -> ModuleName -> SourceSpan -> IO [RefRow]
 searchSourceSpan (getConn -> conn) mn (SourceSpan (StartLine sl) (StartColumn sc) (EndLine el) (EndColumn ec)) =
-  query conn "SELECT * FROM refs WHERE mod = ? AND sl >= ? AND sc >= ? AND el <= ? AND ec <= ?" (mn, sl, sc, el, ec)
+  query conn "SELECT * FROM refs WHERE srcMod = ? AND sl >= ? AND sc >= ? AND el <= ? AND ec <= ?" (mn, sl, sc, el, ec)
