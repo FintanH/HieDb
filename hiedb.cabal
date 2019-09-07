@@ -36,6 +36,7 @@ library
   -- other-extensions:
   build-depends:       base
                      , ghc >= 8.7
+                     , algebraic-graphs
                      , containers
                      , ghc-paths
                      , filepath
